@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DecodeLabs — AI Vision Engine</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --wood-dark:   #3E2723;
+    --wood-mid:    #5D4037;
+    --wood-light:  #8D6E63;
+    --wood-pale:   #D7CCC8;
+    --wood-cream:  #EFEBE9;
+    --wood-paper:  #FBF8F5;
+    --accent:      #BF360C;
+    --accent-soft: #FFCCBC;
+    --text:        #1C1008;
+    --text-dim:    #6D4C41;
+    --text-faint:  #A1887F;
+    --white:       #FFFFFF;
+    --shadow:      0 2px 12px rgba(62,39,35,0.10);
+  }
+
+  body {
+    background: var(--wood-cream);
+    color: var(--text);
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--wood-dark);
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .nav-brand { font-size: 20px; font-weight: 800; color: var(--wood-pale); letter-spacing: 0.02em; }
+  .nav-brand span { color: #FFAB40; }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .nav-badge {
+    background: rgba(255,255,255,0.1);
+    color: var(--wood-pale);
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .nav-status {
+    background: #1B5E20;
+    color: #A5D6A7;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid #2E7D32;
+  }
+  .nav-status::before { content: '● '; }
+
+  /* ── HERO ── */
+  .hero {
+    background: var(--wood-mid);
+    padding: 56px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 40px,
+      rgba(255,255,255,0.03) 40px,
+      rgba(255,255,255,0.03) 41px
+    );
+  }
+  .hero-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: #FFAB40;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .hero h1 {
+    font-size: 46px;
+    font-weight: 800;
+    color: var(--wood-cream);
+    margin-bottom: 12px;
+    line-height: 1.1;
+    position: relative;
+  }
+  .hero h1 span { color: #FFAB40; }
+  .hero p {
+    color: var(--wood-pale);
+    font-size: 15px;
+    max-width: 480px;
+    margin: 0 auto;
+    line-height: 1.7;
+    position: relative;
+    opacity: 0.85;
+  }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    background: var(--wood-dark);
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    border-bottom: 3px solid #FFAB40;
+  }
+  .stats-bar-item {
+    padding: 16px 40px;
+    text-align: center;
+    border-right: 1px solid rgba(255,255,255,0.08);
+  }
+  .stats-bar-item:last-child { border-right: none; }
+  .stats-bar-num {
+    font-size: 24px;
+    font-weight: 800;
+    color: #FFAB40;
+  }
+  .stats-bar-label {
+    font-size: 10px;
+    color: var(--wood-pale);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+    opacity: 0.7;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px 40px;
+    background: var(--wood-paper);
+    border-bottom: 2px solid var(--wood-pale);
+  }
+  .tab {
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--wood-pale);
+    background: var(--white);
+    color: var(--text-dim);
+    transition: all 0.2s;
+  }
+  .tab:hover { border-color: var(--wood-light); color: var(--wood-mid); }
+  .tab.active {
+    background: var(--wood-dark);
+    color: var(--wood-cream);
+    border-color: var(--wood-dark);
+  }
+
+  /* ── MAIN ── */
+  .main {
+    max-width: 880px;
+    margin: 36px auto;
+    padding: 0 20px 80px;
+  }
+
+  /* ── PANELS ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--white);
+    border: 1.5px solid var(--wood-pale);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1.5px solid var(--wood-cream);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── UPLOAD ── */
+  .upload-box {
+    border: 2px dashed var(--wood-pale);
+    border-radius: 10px;
+    padding: 48px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    background: var(--wood-paper);
+  }
+  .upload-box:hover { border-color: var(--wood-light); background: var(--wood-cream); }
+  .upload-box.has-image { border-color: #2E7D32; border-style: solid; background: #F1F8E9; }
+  .upload-icon { font-size: 44px; margin-bottom: 12px; }
+  .upload-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .upload-sub { font-size: 13px; color: var(--text-faint); }
+  #fileInput, #fileInputMulti { display: none; }
+  #preview {
+    display: none;
+    max-width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid var(--wood-pale);
+  }
+  #fileName { color: #2E7D32; font-size: 13px; font-weight: 600; }
+
+  /* ── BUTTONS ── */
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+  .btn {
+    padding: 13px 20px;
+    border: none;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-ocr { background: var(--wood-mid); color: var(--wood-cream); }
+  .btn-detect { background: var(--wood-dark); color: var(--wood-cream); }
+  .btn-copy { background: var(--wood-cream); color: var(--wood-dark); border: 1.5px solid var(--wood-pale); width: 100%; margin-top: 10px; }
+  .btn-pdf { background: var(--accent); color: white; width: 100%; margin-top: 10px; }
+  .btn-webcam { background: var(--wood-light); color: white; width: 100%; margin-top: 8px; }
+  .btn-scan-all { background: #2E7D32; color: white; width: 100%; margin-top: 12px; }
+  .btn-snap { background: var(--wood-mid); color: white; flex: 1; }
+  .btn-stop { background: var(--accent); color: white; flex: 1; }
+  .btn-clear-history { background: var(--wood-cream); color: var(--accent); border: 1.5px solid var(--accent); width: 100%; margin-top: 12px; }
+
+  /* ── RESULT TEXT ── */
+  .result-text {
+    background: var(--wood-paper);
+    border: 1.5px solid var(--wood-pale);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: monospace;
+    font-size: 14px;
+    color: var(--text);
+    white-space: pre-wrap;
+    line-height: 1.7;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  /* ── STATS ── */
+  .stats { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .stat {
+    background: var(--wood-paper);
+    border: 1.5px solid var(--wood-pale);
+    border-radius: 10px;
+    padding: 16px 24px;
+    text-align: center;
+    flex: 1;
+  }
+  .stat-num { font-size: 30px; font-weight: 800; color: var(--wood-mid); }
+  .stat-num.green { color: #2E7D32; }
+  .stat-label { font-size: 10px; color: var(--text-faint); text-transform: uppercase; margin-top: 4px; font-weight: 700; letter-spacing: 0.08em; }
+
+  /* ── MILESTONE ── */
+  .milestone {
+    padding: 13px 20px;
+    border-radius: 9px;
+    font-weight: 700;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 14px;
+  }
+  .milestone.pass { background: #F1F8E9; color: #2E7D32; border: 1.5px solid #A5D6A7; }
+  .milestone.fail { background: #FFF8E1; color: #F57F17; border: 1.5px solid #FFE082; }
+
+  /* ── OBJECTS ── */
+  .obj-list { list-style: none; margin-top: 8px; }
+  .obj-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 16px;
+    background: var(--wood-paper);
+    border: 1px solid var(--wood-pale);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .obj-name { font-weight: 600; text-transform: capitalize; color: var(--text); }
+  .obj-conf {
+    background: var(--wood-mid);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  /* ── OUTPUT IMAGE ── */
+  #outputImage {
+    width: 100%;
+    border-radius: 10px;
+    display: none;
+    margin-top: 16px;
+    border: 1.5px solid var(--wood-pale);
+    cursor: zoom-in;
+  }
+
+  /* ── ZOOM MODAL ── */
+  .zoom-modal 
+  {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+  }
+  .zoom-modal.open { display: flex; }
+  .zoom-modal img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+
+  /* ── LOADING ── */
+  .loading { display: none; text-align: center; padding: 40px; }
+  .spinner {
+    width: 44px; height: 44px;
+    border: 4px solid var(--wood-pale);
+    border-top-color: var(--wood-mid);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 14px;
+  }
+  .loading-text { color: var(--text-dim); font-size: 14px; font-weight: 600; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── WEBCAM ── */
+  #webcamVideo {
+    width: 100%; border-radius: 10px; display: none;
+    border: 1.5px solid var(--wood-pale);
+  }
+  #webcamCanvas { display: none; }
+  .webcam-controls { display: flex; gap: 10px; margin-top: 12px; }
+
+  /* ── MULTI ── */
+  .multi-upload {
+    border: 2px dashed var(--wood-pale);
+    border-radius: 10px;
+    padding: 36px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--wood-paper);
+    transition: all 0.2s;
+  }
+  .multi-upload:hover { border-color: #2E7D32; background: #F1F8E9; }
+  .multi-item {
+    border-bottom: 1.5px solid var(--wood-cream);
+    padding: 14px 0;
+  }
+  .multi-item:last-child { border-bottom: none; }
+  .multi-filename { font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .multi-text { font-size: 13px; color: var(--text-dim); font-family: monospace; margin-top: 6px; }
+  .badge-pass { background: #F1F8E9; color: #2E7D32; border: 1px solid #A5D6A7; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .badge-fail { background: #FFF8E1; color: #F57F17; border: 1px solid #FFE082; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+
+  /* ── HISTORY ── */
+  .history-item {
+    background: var(--wood-paper);
+    border: 1.5px solid var(--wood-pale);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .history-type {
+    background: var(--wood-dark);
+    color: var(--wood-cream);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .history-time { font-size: 11px; color: var(--text-faint); }
+  .history-preview { font-size: 13px; color: var(--text-dim); font-family: monospace; line-height: 1.5; }
+  .history-conf {
+    position: absolute; top: 16px; right: 60px;
+    font-size: 13px; font-weight: 700; color: var(--wood-mid);
+  }
+  .history-empty { text-align: center; color: var(--text-faint); padding: 60px 20px; font-size: 15px; }
+
+  /* ── DASHBOARD ── */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .chart-card {
+    background: var(--white);
+    border: 1.5px solid var(--wood-pale);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .chart-title { font-size: 12px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+  .dash-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .dash-stat {
+    background: var(--white);
+    border: 1.5px solid var(--wood-pale);
+    border-radius: 10px;
+    padding: 20px 16px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .dash-stat-num { font-size: 32px; font-weight: 800; color: var(--wood-mid); }
+  .dash-stat-label { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ZOOM MODAL -->
+<div class="zoom-modal" id="zoomModal" onclick="closeZoom()">
+  <img id="zoomImg" src="" alt="zoomed">
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand"><span>Decode</span>Labs AI Vision Engine</div>
+  <div class="nav-right">
+    <div class="nav-badge">Built & Developed By Sumera</div>
+    <div class="nav-status">Server Running</div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Artificial Intelligence · Image & Text Recognition</div>
+  <h1>Machine <span>Perception</span><br>Engine</h1>
+  <p>OCR · Object Detection · Webcam · Batch Scan · History · Dashboard</p>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stats-bar-item">
+    <div class="stats-bar-num" id="totalScans">0</div>
+    <div class="stats-bar-label">Total Scans</div>
+  </div>
+  <div class="stats-bar-item">
+    <div class="stats-bar-num" id="totalOCR">0</div>
+    <div class="stats-bar-label">OCR Scans</div>
+  </div>
+  <div class="stats-bar-item">
+    <div class="stats-bar-num" id="totalDetect">0</div>
+    <div class="stats-bar-label">Detections</div>
+  </div>
+  <div class="stats-bar-item">
+    <div class="stats-bar-num" id="avgConfBar">0%</div>
+    <div class="stats-bar-label">Avg Confidence</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('single', this)">🔍 Single Image</button>
+  <button class="tab" onclick="switchTab('multi', this)">📂 Multiple Images</button>
+  <button class="tab" onclick="switchTab('webcam', this)">📷 Webcam</button>
+  <button class="tab" onclick="switchTab('history', this)">🕓 History</button>
+  <button class="tab" onclick="switchTab('dashboard', this)">📊 Dashboard</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ── SINGLE IMAGE ── -->
+  <div class="panel active" id="panel-single">
+    <div class="card">
+      <div class="card-title">📁 Upload Image</div>
+      <div class="upload-box" id="uploadBox" onclick="document.getElementById('fileInput').click()">
+        <div id="uploadContent">
+          <div class="upload-icon">📁</div>
+          <div class="upload-title">Click to Choose Image</div>
+          <div class="upload-sub">PNG · JPG · JPEG</div>
+        </div>
+        <img id="preview" src="" alt="preview">
+        <div id="fileName"></div>
+        <input type="file" id="fileInput" accept="image/*" onchange="handleFile(event)">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ocr" onclick="runOCR()" id="btnOCR" disabled>🔍 Run OCR</button>
+        <button class="btn btn-detect" onclick="runDetection()" id="btnDetect" disabled>📦 Detect Objects</button>
+      </div>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText">Processing...</div>
+    </div>
+
+    <!-- OCR RESULT -->
+    <div class="card" id="ocrResults" style="display:none">
+      <div class="card-title">📄 OCR Results — Extracted Text</div>
+      <div class="result-text" id="ocrText"></div>
+      <button class="btn btn-copy" onclick="copyText()">📋 Copy Extracted Text</button>
+      <div class="stats">
+        <div class="stat"><div class="stat-num green" id="wordCount">0</div><div class="stat-label">Words Found</div></div>
+        <div class="stat"><div class="stat-num" id="confScore">0%</div><div class="stat-label">Confidence</div></div>
+      </div>
+      <div class="milestone" id="ocrMilestone"></div>
+      <button class="btn btn-pdf" onclick="downloadPDF('ocr')">📄 Download PDF Report</button>
+    </div>
+
+    <!-- DETECTION RESULT -->
+    <div class="card" id="detectResults" style="display:none">
+      <div class="card-title">🔍 Object Detection Results</div>
+      <ul class="obj-list" id="objList"></ul>
+      <div class="stats">
+        <div class="stat"><div class="stat-num green" id="objCount">0</div><div class="stat-label">Objects Found</div></div>
+      </div>
+      <div class="milestone" id="detectMilestone"></div>
+      <img id="outputImage" src="" alt="Detection Output" onclick="openZoom(this.src)">
+      <div style="font-size:12px; color:var(--text-faint); text-align:center; margin-top:6px;">Click image to zoom</div>
+      <button class="btn btn-pdf" onclick="downloadPDF('detect')">📄 Download PDF Report</button>
+    </div>
+  </div>
+
+  <!-- ── MULTIPLE IMAGES ── -->
+  <div class="panel" id="panel-multi">
+    <div class="card">
+      <div class="card-title">📂 Batch Scan — Multiple Images</div>
+      <div class="multi-upload" onclick="document.getElementById('fileInputMulti').click()">
+        <div class="upload-icon">📂</div>
+        <div class="upload-title">Select Multiple Images</div>
+        <div class="upload-sub">Choose 2 or more at once</div>
+        <input type="file" id="fileInputMulti" accept="image/*" multiple onchange="handleMultiFile(event)">
+      </div>
+      <div id="multiFileNames" style="margin-top:12px; font-size:13px; color:var(--text-dim);"></div>
+      <button class="btn btn-scan-all" id="btnScanAll" onclick="runMultiOCR()" disabled>🔍 Scan All Images</button>
+    </div>
+    <div class="loading" id="loadingMulti"><div class="spinner"></div><div class="loading-text">Scanning all images...</div></div>
+    <div class="card" id="multiResults" style="display:none">
+      <div class="card-title">📊 Batch Results</div>
+      <div id="multiResultList"></div>
+    </div>
+  </div>
+
+  <!-- ── WEBCAM ── -->
+  <div class="panel" id="panel-webcam">
+    <div class="card">
+      <div class="card-title">📷 Live Webcam Scan</div>
+      <video id="webcamVideo" autoplay playsinline></video>
+      <canvas id="webcamCanvas"></canvas>
+      <button class="btn btn-webcam" onclick="startWebcam()">📷 Start Webcam</button>
+      <div class="webcam-controls" id="webcamControls" style="display:none">
+        <button class="btn btn-snap" onclick="snapAndOCR()">📸 Snap & Read Text</button>
+        <button class="btn btn-detect btn-snap" onclick="snapAndDetect()">📦 Snap & Detect</button>
+        <button class="btn btn-stop" onclick="stopWebcam()">⏹ Stop</button>
+      </div>
+    </div>
+    <div class="loading" id="loadingWebcam"><div class="spinner"></div><div class="loading-text">Processing snapshot...</div></div>
+    <div class="card" id="webcamResults" style="display:none">
+      <div class="card-title">📄 Webcam Results</div>
+      <div class="result-text" id="webcamText"></div>
+      <div class="milestone" id="webcamMilestone"></div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY ── -->
+  <div class="panel" id="panel-history">
+    <div class="card">
+      <div class="card-title">🕓 Scan History — All Past Results</div>
+      <div id="historyList"><div class="history-empty">📭 No scans yet — run OCR or Detection first!</div></div>
+      <button class="btn btn-clear-history" onclick="clearHistory()">🗑 Clear All History</button>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="panel" id="panel-dashboard">
+    <div class="dash-stat-grid">
+      <div class="dash-stat"><div class="dash-stat-num" id="d-total">0</div><div class="dash-stat-label">Total Scans</div></div>
+      <div class="dash-stat"><div class="dash-stat-num" id="d-ocr">0</div><div class="dash-stat-label">OCR Scans</div></div>
+      <div class="dash-stat"><div class="dash-stat-num" id="d-det">0</div><div class="dash-stat-label">Detections</div></div>
+      <div class="dash-stat"><div class="dash-stat-num" id="d-avg">0%</div><div class="dash-stat-label">Avg Confidence</div></div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">📊 Scan Types</div>
+        <canvas id="chartTypes" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📈 Confidence Over Time</div>
+        <canvas id="chartConf" height="200"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🔍 Objects Detected (All Time)</div>
+      <canvas id="chartObjects" height="120"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── STATE ──
+  let selectedFile = null;
+  let multiFiles = null;
+  let webcamStream = null;
+  let lastOCRData = null;
+  let lastDetectData = null;
+  let history = JSON.parse(localStorage.getItem('dl_history') || '[]');
+  let charts = {};
+
+  // ── TABS ──
+  function switchTab(name, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    el.classList.add('active');
+    if (name !== 'webcam') stopWebcam();
+    if (name === 'history') renderHistory();
+    if (name === 'dashboard') renderDashboard();
+  }
+
+  // ── STATS BAR ──
+  function updateStatsBar() {
+    const ocr = history.filter(h => h.type === 'OCR');
+    const det = history.filter(h => h.type === 'Detection');
+    const confs = history.map(h => h.confidence || 0).filter(c => c > 0);
+    const avg = confs.length ? (confs.reduce((a,b) => a+b, 0) / confs.length).toFixed(1) : 0;
+    document.getElementById('totalScans').textContent = history.length;
+    document.getElementById('totalOCR').textContent = ocr.length;
+    document.getElementById('totalDetect').textContent = det.length;
+    document.getElementById('avgConfBar').textContent = avg + '%';
+  }
+
+  // ── SINGLE IMAGE ──
+  function handleFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      document.getElementById('preview').src = e.target.result;
+      document.getElementById('preview').style.display = 'block';
+      document.getElementById('uploadContent').style.display = 'none';
+      document.getElementById('fileName').textContent = '✅ ' + file.name;
+      document.getElementById('uploadBox').classList.add('has-image');
+      document.getElementById('btnOCR').disabled = false;
+      document.getElementById('btnDetect').disabled = false;
+      document.getElementById('ocrResults').style.display = 'none';
+      document.getElementById('detectResults').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function showLoading(id, text) {
+    document.getElementById(id).style.display = 'block';
+    const t = document.getElementById('loadingText');
+    if (t) t.textContent = text || 'Processing...';
+  }
+  function hideLoading(id) { document.getElementById(id).style.display = 'none'; }
+
+  function saveHistory(entry) {
+    history.unshift({ ...entry, time: new Date().toLocaleString() });
+    if (history.length > 50) history = history.slice(0, 50);
+    localStorage.setItem('dl_history', JSON.stringify(history));
+    updateStatsBar();
+  }
+
+  async function runOCR() {
+    if (!selectedFile) return;
+    showLoading('loading', 'Reading text from image...');
+    document.getElementById('ocrResults').style.display = 'none';
+    document.getElementById('detectResults').style.display = 'none';
+    const formData = new FormData();
+    formData.append('image', selectedFile);
+    try {
+      const res = await fetch('/ocr', { method: 'POST', body: formData });
+      const data = await res.json();
+      lastOCRData = data;
+      hideLoading('loading');
+      document.getElementById('ocrResults').style.display = 'block';
+      document.getElementById('ocrText').textContent = data.text || 'No text found';
+      document.getElementById('wordCount').textContent = data.words;
+      document.getElementById('confScore').textContent = data.confidence + '%';
+      const m = document.getElementById('ocrMilestone');
+      m.className = 'milestone ' + (data.passed ? 'pass' : 'fail');
+      m.textContent = data.passed ? '🏆 MILESTONE PASSED — Confidence ≥ 80%' : '⚠️ Low confidence — try clearer image';
+      saveHistory({ type: 'OCR', text: data.text, confidence: data.confidence, words: data.words, passed: data.passed });
+    } catch(e) { hideLoading('loading'); alert('Server error!'); }
+  }
+
+  async function runDetection() {
+    if (!selectedFile) return;
+    showLoading('loading', 'Detecting objects with MobileNet-SSD...');
+    document.getElementById('ocrResults').style.display = 'none';
+    document.getElementById('detectResults').style.display = 'none';
+    const formData = new FormData();
+    formData.append('image', selectedFile);
+    try {
+      const res = await fetch('/detect', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.error) { hideLoading('loading'); alert(data.error); return; }
+      lastDetectData = data;
+      hideLoading('loading');
+      document.getElementById('detectResults').style.display = 'block';
+      const list = document.getElementById('objList');
+      list.innerHTML = '';
+      data.objects.forEach(obj => {
+        list.innerHTML += `<li class="obj-item"><span class="obj-name">🔹 ${obj.label}</span><span class="obj-conf">${obj.confidence}%</span></li>`;
+      });
+      document.getElementById('objCount').textContent = data.total;
+      const m = document.getElementById('detectMilestone');
+      m.className = 'milestone ' + (data.passed ? 'pass' : 'fail');
+      m.textContent = data.passed ? '🏆 MILESTONE PASSED — Objects detected!' : '⚠️ No objects found';
+      if (data.image) {
+        document.getElementById('outputImage').src = 'data:image/png;base64,' + data.image;
+        document.getElementById('outputImage').style.display = 'block';
+      }
+      const avgConf = data.objects.length ? data.objects.reduce((a,b) => a + b.confidence, 0) / data.objects.length : 0;
+      saveHistory({ type: 'Detection', objects: data.objects, confidence: avgConf.toFixed(1), total: data.total, passed: data.passed });
+    } catch(e) { hideLoading('loading'); alert('Server error!'); }
+  }
+
+  // ── COPY TEXT ──
+  function copyText() {
+    const text = document.getElementById('ocrText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.btn-copy');
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = '📋 Copy Extracted Text', 2000);
+    });
+  }
+
+  // ── PDF ──
+  async function downloadPDF(type) {
+    const data = type === 'ocr' ? lastOCRData : lastDetectData;
+    if (!data) return;
+    const res = await fetch('/generate_pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'DecodeLabs_Report.pdf'; a.click();
+  }
+
+  // ── ZOOM ──
+  function openZoom(src) {
+    document.getElementById('zoomImg').src = src;
+    document.getElementById('zoomModal').classList.add('open');
+  }
+  function closeZoom() { document.getElementById('zoomModal').classList.remove('open'); }
+
+  // ── MULTI ──
+  function handleMultiFile(event) {
+    multiFiles = event.target.files;
+    document.getElementById('multiFileNames').textContent = `✅ ${multiFiles.length} files: ` + Array.from(multiFiles).map(f => f.name).join(', ');
+    document.getElementById('btnScanAll').disabled = false;
+  }
+
+  async function runMultiOCR() {
+    if (!multiFiles) return;
+    showLoading('loadingMulti');
+    document.getElementById('multiResults').style.display = 'none';
+    const formData = new FormData();
+    Array.from(multiFiles).forEach(f => formData.append('images', f));
+    try {
+      const res = await fetch('/ocr_multiple', { method: 'POST', body: formData });
+      const data = await res.json();
+      hideLoading('loadingMulti');
+      document.getElementById('multiResults').style.display = 'block';
+      const list = document.getElementById('multiResultList');
+      list.innerHTML = '';
+      data.results.forEach(r => {
+        list.innerHTML += `
+          <div class="multi-item">
+            <div class="multi-filename">📄 ${r.filename} <span class="${r.passed ? 'badge-pass' : 'badge-fail'}">${r.passed ? 'PASSED' : 'LOW CONF'}</span></div>
+            <div style="font-size:12px;color:var(--text-faint);margin:4px 0;">Confidence: ${r.confidence}%</div>
+            <div class="multi-text">${r.text || 'No text found'}</div>
+          </div>`;
+        saveHistory({ type: 'OCR', text: r.text, confidence: r.confidence, passed: r.passed });
+      });
+    } catch(e) { hideLoading('loadingMulti'); }
+  }
+
+  // ── WEBCAM ──
+  async function startWebcam() {
+    try {
+      webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      document.getElementById('webcamVideo').srcObject = webcamStream;
+      document.getElementById('webcamVideo').style.display = 'block';
+      document.getElementById('webcamControls').style.display = 'flex';
+    } catch(e) { alert('Cannot access webcam!'); }
+  }
+
+  function stopWebcam() {
+    if (webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); webcamStream = null; }
+    document.getElementById('webcamVideo').style.display = 'none';
+    document.getElementById('webcamControls').style.display = 'none';
+  }
+
+  function snapImage() {
+    const video = document.getElementById('webcamVideo');
+    const canvas = document.getElementById('webcamCanvas');
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  }
+
+  async function snapAndOCR() {
+    const blob = await snapImage();
+    showLoading('loadingWebcam', 'Reading text from webcam snapshot...');
+    document.getElementById('webcamResults').style.display = 'none';
+    const formData = new FormData();
+    formData.append('image', blob, 'webcam.png');
+    try {
+      const res = await fetch('/ocr', { method: 'POST', body: formData });
+      const data = await res.json();
+      hideLoading('loadingWebcam');
+      document.getElementById('webcamResults').style.display = 'block';
+      document.getElementById('webcamText').textContent = data.text || 'No text found';
+      const m = document.getElementById('webcamMilestone');
+      m.className = 'milestone ' + (data.passed ? 'pass' : 'fail');
+      m.textContent = data.passed ? `🏆 PASSED — ${data.confidence}% confidence` : `⚠️ Low: ${data.confidence}%`;
+      saveHistory({ type: 'OCR', text: data.text, confidence: data.confidence, passed: data.passed });
+    } catch(e) { hideLoading('loadingWebcam'); }
+  }
+
+  async function snapAndDetect() {
+    const blob = await snapImage();
+    showLoading('loadingWebcam', 'Detecting objects from webcam...');
+    document.getElementById('webcamResults').style.display = 'none';
+    const formData = new FormData();
+    formData.append('image', blob, 'webcam.png');
+    try {
+      const res = await fetch('/detect', { method: 'POST', body: formData });
+      const data = await res.json();
+      hideLoading('loadingWebcam');
+      document.getElementById('webcamResults').style.display = 'block';
+      document.getElementById('webcamText').textContent = data.objects.map(o => `${o.label}: ${o.confidence}%`).join('\n') || 'Nothing found';
+      const m = document.getElementById('webcamMilestone');
+      m.className = 'milestone ' + (data.passed ? 'pass' : 'fail');
+      m.textContent = data.passed ? `🏆 PASSED — ${data.total} objects found!` : '⚠️ No objects found';
+      saveHistory({ type: 'Detection', objects: data.objects, total: data.total, passed: data.passed });
+    } catch(e) { hideLoading('loadingWebcam'); }
+  }
+
+  // ── HISTORY ──
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    if (!history.length) {
+      list.innerHTML = '<div class="history-empty">📭 No scans yet — run OCR or Detection first!</div>';
+      return;
+    }
+    list.innerHTML = history.map((h, i) => `
+      <div class="history-item">
+        <div class="history-header">
+          <span class="history-type">${h.type}</span>
+          <span class="history-time">${h.time}</span>
+        </div>
+        <div class="history-conf">${h.confidence || 0}%</div>
+        <div class="history-preview">${h.type === 'OCR'
+          ? (h.text || 'No text').substring(0, 120) + '...'
+          : (h.objects || []).map(o => `${o.label} (${o.confidence}%)`).join(', ') || 'No objects'
+        }</div>
+        <div class="milestone ${h.passed ? 'pass' : 'fail'}" style="margin-top:10px; padding:8px;">
+          ${h.passed ? '✅ PASSED' : '⚠️ LOW CONFIDENCE'}
+        </div>
+      </div>`).join('');
+  }
+
+  function clearHistory() {
+    if (confirm('Clear all history?')) {
+      history = [];
+      localStorage.removeItem('dl_history');
+      updateStatsBar();
+      renderHistory();
+    }
+  }
+
+  // ── DASHBOARD ──
+  function renderDashboard() {
+    const ocr = history.filter(h => h.type === 'OCR');
+    const det = history.filter(h => h.type === 'Detection');
+    const confs = history.map(h => parseFloat(h.confidence) || 0).filter(c => c > 0);
+    const avg = confs.length ? (confs.reduce((a,b) => a+b, 0) / confs.length).toFixed(1) : 0;
+
+    document.getElementById('d-total').textContent = history.length;
+    document.getElementById('d-ocr').textContent = ocr.length;
+    document.getElementById('d-det').textContent = det.length;
+    document.getElementById('d-avg').textContent = avg + '%';
+
+    // Pie chart
+    if (charts.types) charts.types.destroy();
+    charts.types = new Chart(document.getElementById('chartTypes'), {
+      type: 'doughnut',
+      data: {
+        labels: ['OCR Scans', 'Detections'],
+        datasets: [{ data: [ocr.length || 1, det.length || 1], backgroundColor: ['#5D4037', '#BF360C'], borderWidth: 0 }]
+      },
+      options: { plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+    });
+
+    // Line chart — confidence over time
+    if (charts.conf) charts.conf.destroy();
+    const confData = history.slice(0, 10).reverse().map(h => parseFloat(h.confidence) || 0);
+    charts.conf = new Chart(document.getElementById('chartConf'), {
+      type: 'line',
+      data: {
+        labels: confData.map((_, i) => `Scan ${i+1}`),
+        datasets: [{
+          label: 'Confidence %',
+          data: confData,
+          borderColor: '#5D4037',
+          backgroundColor: 'rgba(93,64,55,0.1)',
+          tension: 0.4, fill: true, pointRadius: 4
+        }]
+      },
+      options: { scales: { y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+    });
+
+    // Bar chart — objects
+    const objCounts = {};
+    det.forEach(d => (d.objects || []).forEach(o => { objCounts[o.label] = (objCounts[o.label] || 0) + 1; }));
+    if (charts.objs) charts.objs.destroy();
+    charts.objs = new Chart(document.getElementById('chartObjects'), {
+      type: 'bar',
+      data: {
+        labels: Object.keys(objCounts).length ? Object.keys(objCounts) : ['No data yet'],
+        datasets: [{
+          data: Object.values(objCounts).length ? Object.values(objCounts) : [0],
+          backgroundColor: '#8D6E63', borderRadius: 6
+        }]
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+  }
+
+  // ── INIT ──
+  updateStatsBar();
+</script>
+</body>
+</html>
